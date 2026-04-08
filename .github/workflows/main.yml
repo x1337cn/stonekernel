@@ -13,10 +13,11 @@ jobs:
 
     steps:
 
-      # Install dependencies
-      - name: Install Build Tools
+      # Step 1 — Install Required Tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             bc \
             bison \
@@ -36,19 +37,22 @@ jobs:
             wget \
             device-tree-compiler
 
-      # ✅ CORRECT mkdtimg installation
-      - name: Install mkdtimg (Correct Method)
+      # Step 2 — Install mkdtimg (STABLE METHOD)
+      - name: Install mkdtimg
         run: |
-          git clone https://android.googlesource.com/platform/system/libufdt
-          sudo cp libufdt/utils/src/mkdtimg.py /usr/local/bin/mkdtimg
-          sudo chmod +x /usr/local/bin/mkdtimg
+          wget https://raw.githubusercontent.com/osm0sis/mkbootimg/master/mkdtimg
 
-      # Verify mkdtimg
+          chmod +x mkdtimg
+
+          sudo mv mkdtimg /usr/local/bin/
+
+      # Step 3 — Verify mkdtimg
       - name: Verify mkdtimg
         run: |
-          mkdtimg --help || echo "mkdtimg ready"
+          which mkdtimg
+          mkdtimg --help || true
 
-      # Kernel Build
+      # Step 4 — Build Kernel
       - name: Build Kernel
         uses: dabao1955/kernel_build_action@main
         with:
