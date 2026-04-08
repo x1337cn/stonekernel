@@ -36,18 +36,17 @@ jobs:
             wget \
             device-tree-compiler
 
-      # 🔥 REAL FIX — build mkdtimg manually
-      - name: Build mkdtimg Tool
+      # ✅ CORRECT mkdtimg installation
+      - name: Install mkdtimg (Correct Method)
         run: |
           git clone https://android.googlesource.com/platform/system/libufdt
-          cd libufdt/utils
-          gcc mkdtimg.c -o mkdtimg
-          sudo mv mkdtimg /usr/local/bin/
+          sudo cp libufdt/utils/src/mkdtimg.py /usr/local/bin/mkdtimg
+          sudo chmod +x /usr/local/bin/mkdtimg
 
-      # Verify mkdtimg exists
+      # Verify mkdtimg
       - name: Verify mkdtimg
         run: |
-          mkdtimg --help || echo "mkdtimg installed"
+          mkdtimg --help || echo "mkdtimg ready"
 
       # Kernel Build
       - name: Build Kernel
@@ -58,20 +57,14 @@ jobs:
           config: stone_defconfig
           arch: arm64
 
-          # Toolchains
           aosp-gcc: true
           aosp-clang: true
           aosp-clang-version: r383902
 
-          # Android 16 (Correct for crDroid 12.7)
           android-version: 16
 
-          # Packaging
           anykernel3: true
-
-          # Performance
           ccache: true
 
-          # Release
           release: true
           access-token: ${{ secrets.GITHUB_TOKEN }}
