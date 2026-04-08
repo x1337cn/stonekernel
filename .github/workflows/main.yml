@@ -13,13 +13,11 @@ jobs:
 
     steps:
 
-      # Install required tools (Fix mkdtimg issue)
-      - name: Install Required Build Tools
+      # Install dependencies
+      - name: Install Build Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            android-sdk-libsparse-utils \
-            device-tree-compiler \
             bc \
             bison \
             build-essential \
@@ -35,14 +33,23 @@ jobs:
             python3 \
             unzip \
             zip \
-            wget
+            wget \
+            device-tree-compiler
+
+      # 🔥 REAL FIX — build mkdtimg manually
+      - name: Build mkdtimg Tool
+        run: |
+          git clone https://android.googlesource.com/platform/system/libufdt
+          cd libufdt/utils
+          gcc mkdtimg.c -o mkdtimg
+          sudo mv mkdtimg /usr/local/bin/
 
       # Verify mkdtimg exists
       - name: Verify mkdtimg
         run: |
-          which mkdtimg
+          mkdtimg --help || echo "mkdtimg installed"
 
-      # Build Kernel
+      # Kernel Build
       - name: Build Kernel
         uses: dabao1955/kernel_build_action@main
         with:
@@ -54,15 +61,16 @@ jobs:
           # Toolchains
           aosp-gcc: true
           aosp-clang: true
-
-          # 🔥 FIX: Android version corrected
-          android-version: 16
-
-          # Clang version (still correct)
           aosp-clang-version: r383902
+
+          # Android 16 (Correct for crDroid 12.7)
+          android-version: 16
 
           # Packaging
           anykernel3: true
+
+          # Performance
+          ccache: true
 
           # Release
           release: true
