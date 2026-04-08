@@ -8,20 +8,62 @@ permissions:
 
 jobs:
   build-kernel:
-    name: Build Kernel
+    name: Build Kernel (stone Android 16)
     runs-on: ubuntu-22.04
+
     steps:
-      - name: Build
+
+      # Install required tools (Fix mkdtimg issue)
+      - name: Install Required Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            android-sdk-libsparse-utils \
+            device-tree-compiler \
+            bc \
+            bison \
+            build-essential \
+            curl \
+            flex \
+            git \
+            kmod \
+            libssl-dev \
+            libelf-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            lzop \
+            python3 \
+            unzip \
+            zip \
+            wget
+
+      # Verify mkdtimg exists
+      - name: Verify mkdtimg
+        run: |
+          which mkdtimg
+
+      # Build Kernel
+      - name: Build Kernel
         uses: dabao1955/kernel_build_action@main
         with:
           kernel-url: https://github.com/kamikaonashi/kernel_xiaomi_stone
           kernel-branch: 16
           config: stone_defconfig
           arch: arm64
+
+          # Toolchains
           aosp-gcc: true
           aosp-clang: true
-          android-version: 12
+
+          # 🔥 FIX: Android version corrected
+          android-version: 16
+
+          # Clang version (still correct)
           aosp-clang-version: r383902
+
+          # Packaging
           anykernel3: true
+
+          # Release
           release: true
           access-token: ${{ secrets.GITHUB_TOKEN }}
