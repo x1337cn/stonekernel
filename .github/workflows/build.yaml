@@ -38,47 +38,42 @@ jobs:
             wget \
             device-tree-compiler
 
-       # Step 2 — Install mkdtboimg + mkdtimg wrapper
-      - name: Install mkdtimg (Android 16 Compatible)
+            # Step 2 — Install mkdtboimg safely
+      - name: Install mkdtimg tools
         run: |
-          echo "Downloading mkdtboimg..."
+          echo "Cloning AOSP libufdt..."
 
-          curl -L "https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main/utils/src/mkdtboimg.py?format=TEXT" \
-            | base64 -d > mkdtboimg.py
+          git clone https://android.googlesource.com/platform/system/libufdt
 
-          chmod +x mkdtboimg.py
+          sudo cp libufdt/utils/src/mkdtboimg.py /usr/local/bin/mkdtboimg.py
 
-          sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg.py
+          sudo chmod +x /usr/local/bin/mkdtboimg.py
 
           echo "Creating mkdtimg wrapper..."
 
-          sudo bash -c 'cat > /usr/local/bin/mkdtimg << "EOF"
-          #!/usr/bin/env bash
-
-          if [[ "$1" == "create" ]]; then
-              shift
-              python3 /usr/local/bin/mkdtboimg.py create "$@"
-          elif [[ "$1" == "cfg_create" ]]; then
-              shift
-              python3 /usr/local/bin/mkdtboimg.py cfg_create "$@"
-          elif [[ "$1" == "dump" ]]; then
-              shift
-              python3 /usr/local/bin/mkdtboimg.py dump "$@"
-          else
-              python3 /usr/local/bin/mkdtboimg.py "$@"
-          fi
-          EOF'
+          echo '#!/usr/bin/env bash' | sudo tee /usr/local/bin/mkdtimg > /dev/null
+          echo '' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo 'if [[ "$1" == "create" ]]; then' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    shift' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    python3 /usr/local/bin/mkdtboimg.py create "$@"' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo 'elif [[ "$1" == "cfg_create" ]]; then' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    shift' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    python3 /usr/local/bin/mkdtboimg.py cfg_create "$@"' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo 'elif [[ "$1" == "dump" ]]; then' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    shift' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    python3 /usr/local/bin/mkdtboimg.py dump "$@"' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo 'else' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo '    python3 /usr/local/bin/mkdtboimg.py "$@"' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
+          echo 'fi' | sudo tee -a /usr/local/bin/mkdtimg > /dev/null
 
           sudo chmod +x /usr/local/bin/mkdtimg
 
-      # Step 3 — Verify Tools
+      # Step 3 — Verify mkdtimg
       - name: Verify mkdtimg
         run: |
           which mkdtimg
           which mkdtboimg.py
-
           mkdtimg help || true
-          python3 /usr/local/bin/mkdtboimg.py help || true
 
       # Step 4 — Build Kernel
       - name: Build Kernel
@@ -92,7 +87,9 @@ jobs:
 
           aosp-gcc: true
           aosp-clang: true
-          aosp-clang-version: r450784d
+
+          # ✅ FIXED VERSION (WORKS)
+          aosp-clang-version: r450784e
 
           android-version: 16
 
