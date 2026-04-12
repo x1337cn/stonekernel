@@ -13,7 +13,7 @@ jobs:
 
     steps:
 
-      # Install Dependencies (FIXED)
+      # Step 1 — Install Dependencies
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -38,49 +38,61 @@ jobs:
             wget \
             device-tree-compiler
 
-      # Install mkdtboimg + mkdtimg wrapper
-      - name: Install mkdtimg (Android 16 Fix)
+       # Step 2 — Install mkdtboimg + mkdtimg wrapper
+      - name: Install mkdtimg (Android 16 Compatible)
         run: |
+          echo "Downloading mkdtboimg..."
 
-          curl -L \
-          https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main/utils/src/mkdtboimg.py?format=TEXT \
-          | base64 -d > mkdtboimg.py
+          curl -L "https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main/utils/src/mkdtboimg.py?format=TEXT" \
+            | base64 -d > mkdtboimg.py
 
           chmod +x mkdtboimg.py
 
-          sudo mv mkdtboimg.py /usr/local/bin/
+          sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg.py
 
-          sudo tee /usr/local/bin/mkdtimg > /dev/null << 'EOF'
-#!/usr/bin/env bash
+          echo "Creating mkdtimg wrapper..."
 
-if [[ "$1" == "create" ]]; then
-    shift
-    python3 /usr/local/bin/mkdtboimg.py create "$@"
-elif [[ "$1" == "cfg_create" ]]; then
-    shift
-    python3 /usr/local/bin/mkdtboimg.py cfg_create "$@"
-elif [[ "$1" == "dump" ]]; then
-    shift
-    python3 /usr/local/bin/mkdtboimg.py dump "$@"
-else
-    python3 /usr/local/bin/mkdtboimg.py "$@"
-fi
-EOF
+          sudo bash -c 'cat > /usr/local/bin/mkdtimg << "EOF"
+          #!/usr/bin/env bash
+
+          if [[ "$1" == "create" ]]; then
+              shift
+              python3 /usr/local/bin/mkdtboimg.py create "$@"
+          elif [[ "$1" == "cfg_create" ]]; then
+              shift
+              python3 /usr/local/bin/mkdtboimg.py cfg_create "$@"
+          elif [[ "$1" == "dump" ]]; then
+              shift
+              python3 /usr/local/bin/mkdtboimg.py dump "$@"
+          else
+              python3 /usr/local/bin/mkdtboimg.py "$@"
+          fi
+          EOF'
 
           sudo chmod +x /usr/local/bin/mkdtimg
 
-      # Build Kernel
+      # Step 3 — Verify Tools
+      - name: Verify mkdtimg
+        run: |
+          which mkdtimg
+          which mkdtboimg.py
+
+          mkdtimg help || true
+          python3 /usr/local/bin/mkdtboimg.py help || true
+
+      # Step 4 — Build Kernel
       - name: Build Kernel
         uses: dabao1955/kernel_build_action@main
         with:
           kernel-url: https://github.com/kamikaonashi/kernel_xiaomi_stone
           kernel-branch: 16
+
           config: stone_defconfig
           arch: arm64
 
           aosp-gcc: true
           aosp-clang: true
-          aosp-clang-version: r450784d   # FIXED
+          aosp-clang-version: r450784d
 
           android-version: 16
 
