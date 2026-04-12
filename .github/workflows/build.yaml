@@ -13,7 +13,7 @@ jobs:
 
     steps:
 
-      # Step 1 — Install Required Tools
+      # Install Dependencies (FIXED)
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -22,6 +22,7 @@ jobs:
             bc \
             bison \
             build-essential \
+            ccache \
             curl \
             flex \
             git \
@@ -37,10 +38,9 @@ jobs:
             wget \
             device-tree-compiler
 
-      # Step 2 — Install mkdtboimg (Android 16 FIX)
-      - name: Install mkdtboimg (AOSP Official)
+      # Install mkdtboimg + mkdtimg wrapper
+      - name: Install mkdtimg (Android 16 Fix)
         run: |
-          echo "Downloading mkdtboimg from AOSP..."
 
           curl -L \
           https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main/utils/src/mkdtboimg.py?format=TEXT \
@@ -48,24 +48,28 @@ jobs:
 
           chmod +x mkdtboimg.py
 
-          sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg.py
+          sudo mv mkdtboimg.py /usr/local/bin/
 
-          # Create mkdtimg wrapper (for old scripts compatibility)
-          echo '#!/bin/bash' | sudo tee /usr/local/bin/mkdtimg
-          echo 'python3 /usr/local/bin/mkdtboimg.py "$@"' | sudo tee -a /usr/local/bin/mkdtimg
+          sudo tee /usr/local/bin/mkdtimg > /dev/null << 'EOF'
+#!/usr/bin/env bash
+
+if [[ "$1" == "create" ]]; then
+    shift
+    python3 /usr/local/bin/mkdtboimg.py create "$@"
+elif [[ "$1" == "cfg_create" ]]; then
+    shift
+    python3 /usr/local/bin/mkdtboimg.py cfg_create "$@"
+elif [[ "$1" == "dump" ]]; then
+    shift
+    python3 /usr/local/bin/mkdtboimg.py dump "$@"
+else
+    python3 /usr/local/bin/mkdtboimg.py "$@"
+fi
+EOF
 
           sudo chmod +x /usr/local/bin/mkdtimg
 
-      # Step 3 — Verify mkdtimg / mkdtboimg
-      - name: Verify DT Tools
-        run: |
-          which mkdtimg
-          which mkdtboimg.py
-
-          mkdtimg --help || true
-          python3 /usr/local/bin/mkdtboimg.py --help || true
-
-      # Step 4 — Build Kernel
+      # Build Kernel
       - name: Build Kernel
         uses: dabao1955/kernel_build_action@main
         with:
@@ -76,7 +80,7 @@ jobs:
 
           aosp-gcc: true
           aosp-clang: true
-          aosp-clang-version: r383902
+          aosp-clang-version: r450784d   # FIXED
 
           android-version: 16
 
