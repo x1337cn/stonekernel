@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-kernel:
+    name: Build Kernel (stone Android 16)
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      # Step 1 — Install Required Tools
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            curl \
+            flex \
+            git \
+            kmod \
+            libssl-dev \
+            libelf-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            lzop \
+            python3 \
+            unzip \
+            zip \
+            wget \
+            device-tree-compiler
+
+      # Step 2 — Install mkdtboimg (Android 16 FIX)
+      - name: Install mkdtboimg (AOSP Official)
+        run: |
+          echo "Downloading mkdtboimg from AOSP..."
+
+          curl -L \
+          https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main/utils/src/mkdtboimg.py?format=TEXT \
+          | base64 -d > mkdtboimg.py
+
+          chmod +x mkdtboimg.py
+
+          sudo mv mkdtboimg.py /usr/local/bin/mkdtboimg.py
+
+          # Create mkdtimg wrapper (for old scripts compatibility)
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/mkdtimg
+          echo 'python3 /usr/local/bin/mkdtboimg.py "$@"' | sudo tee -a /usr/local/bin/mkdtimg
+
+          sudo chmod +x /usr/local/bin/mkdtimg
+
+      # Step 3 — Verify mkdtimg / mkdtboimg
+      - name: Verify DT Tools
+        run: |
+          which mkdtimg
+          which mkdtboimg.py
+
+          mkdtimg --help || true
+          python3 /usr/local/bin/mkdtboimg.py --help || true
+
+      # Step 4 — Build Kernel
+      - name: Build Kernel
+        uses: dabao1955/kernel_build_action@main
+        with:
+          kernel-url: https://github.com/kamikaonashi/kernel_xiaomi_stone
+          kernel-branch: 16
+          config: stone_defconfig
+          arch: arm64
+
+          aosp-gcc: true
+          aosp-clang: true
+          aosp-clang-version: r383902
+
+          android-version: 16
+
+          anykernel3: true
+          ccache: true
+
+          release: true
+          access-token: ${{ secrets.GITHUB_TOKEN }}
